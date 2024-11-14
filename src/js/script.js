@@ -165,6 +165,23 @@ const select = {
           // determine option value, e.g. optionId = 'olives', option = { label: 'Olives', price: 2, default: true }
           const option = param.options[optionId];
           console.log(optionId, option);
+
+          // check if there is param with a name of paramId in formData and if it includes optionId
+          const optionSelected = formData[paramId] && formData[paramId].includes(optionId);
+
+          //option is selected but is not defauld
+          if (optionSelected) {
+            if (!option.default) {
+              //add option price to price variable
+              price += option.price;
+            }
+          } else {
+            //option is not selected but is default
+            if (option.default) {
+              //substract option price from price variable
+              price -= option.price;
+            }
+          }
         }
       }
       // update calculated price in the HTM
