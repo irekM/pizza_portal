@@ -274,7 +274,7 @@ const select = {
       }
       
     }
-  }
+  
 
   const app = {
     initData: function(){
@@ -308,4 +308,5 @@ const select = {
   };
 
   app.init();
+
 }
