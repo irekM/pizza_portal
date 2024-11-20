@@ -263,7 +263,7 @@ const select = {
         thisWidget.linkIncrease.addEventListener('click', function(event){
           event.preventDefault();
           thisWidget.setValue(thisWidget.value + 1);
-        })
+        });
       }
 
       announce(){
@@ -272,8 +272,8 @@ const select = {
         const event = new Event('updated');
         thisWidget.element.dispatchEvent(event);
       }
-      
-    }
+  }
+
   
 
   const app = {
