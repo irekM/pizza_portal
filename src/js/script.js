@@ -365,7 +365,9 @@
       announce(){
         const thisWidget = this;
 
-        const event = new Event('updated');
+        const event = new CustomEvent('updated', {
+          bubbles: true
+        });
         thisWidget.element.dispatchEvent(event);
       }
   }
@@ -379,20 +381,28 @@
       thisCart.getElements(element);
       thisCart.initActions;
 
-      console.log('new cart', thisCart);
+      //console.log('new cart', thisCart);
     }
 
     getElements(element){
       const thisCart = this;
 
       thisCart.dom = {};
-
       thisCart.dom.wrapper = element;
 
       thisCart.dom.toggleTrigger = thisCart.dom.wrapper.querySelector(select.cart.toggleTrigger);
       
       //referencja do listy produktów w koszyku
       thisCart.dom.productList = thisCart.dom.wrapper.querySelector(select.cart.productList);
+      //referencja do elementu z kosztem przesylki
+      thisCart.dom.deliveryFee = thisCart.dom.wrapper.querySelector(select.cart.deliveryFee);
+      // Dodanie referencji do elementu pokazującego sumę cen bez kosztów przesyłki
+      thisCart.dom.subtotalPrice = thisCart.dom.wrapper.querySelector(select.cart.subtotalPrice);
+       // Dodanie referencji do elementów pokazujących cenę końcową (uwzględniającą przesyłkę)
+      thisCart.dom.totalPrice = thisCart.dom.wrapper.querySelectorAll(select.cart.totalPrice);
+
+      // Dodanie referencji do elementu pokazującego liczbę sztuk produktów
+      thisCart.dom.totalNumber = thisCart.dom.wrapper.querySelector(select.cart.totalNumber);
     }
 
     initActions(){
@@ -400,7 +410,15 @@
       
       thisCart.dom.toggleTrigger.addEventListener('click', function(){
         thisCart.dom.wrapper.classList.toggle(classNames.cart.wrapperActive);
-      })
+      });
+
+      thisCart.dom.productList.addEventListener('updated', function(){
+        thisCart.update();
+      });
+
+      thisCart.dom.productList.addEventListener('remove', function(event){
+        thisCart.remove(event.detail.cartProduct);
+      });
     }
 
     add(menuProduct){
@@ -415,9 +433,140 @@
       //dodanie produktu do listy w koszyku
       thisCart.dom.productList.appendChild(generatedDOM);
       //console.log('adding product', menuProduct);
+      thisCart.products.push(new CartProduct(menuProduct, generatedDOM));
+      //console.log('thisCart.products', thisCart.products);
+
+      thisCart.update();// Wywołujemy update po dodaniu produktu do koszyka
+    }
+
+    update(){
+      const thisCart = this;
+
+      const deliveryFee = settings.cart.defaultDeliveryFee;
+      let totalNumber = 0;
+      let subtotalPrice = 0;
+
+      for(let product of thisCart.products){
+        totalNumber += product.amount; //zwieksza liczbe sztuk
+        subtotalPrice += product.price; //zwieksza sume cen produktów
+      }
+
+      if(totalNumber > 0){
+        thisCart.totalPrice = subtotalPrice + deliveryFee; //jak sa produkty dodajemy dostawe
+      } else{
+        thisCart.totalPrice = 0; //jesli nie ma produktow to cena na 0
+      }
+      //aktualizacja wartosci w koszyku
+      thisCart.dom.totalNumber.innerHTML = totalNumber;
+      thisCart.dom.subtotalPrice.innerHTML = subtotalPrice;
+      thisCart.dom.deliveryFee.innerHTML = totalNumber > 0 ? deliveryFee : 0;
+
+      for (let totalPriceElem of thisCart.dom.totalPrice){
+        totalPriceElem.innerHTML = thisCart.totalPrice;
+      }
+
+      console.log('totalNumber:', totalNumber);
+      console.log('subtotalPrice:', subtotalPrice);
+      console.log('deliveryFee:', deliveryFee);
+      console.log('totalPrice:', thisCart.totalPrice);
+    }
+
+    remove(cartProduct){
+      const thisCart = this;
+      //szukanie indexu w tablicy this.cartProducts
+      const indexOfProduct = thisCart.products.indexOf(cartProduct);
+      //usuwanie produktu jestli jest w koszyku
+      if (indexOfProduct !== -1) {
+        thisCart.products.splice(indexOfProduct, 1);
+      }
+      //usuwanie elementu dom
+      cartProduct.dom.wrapper.remove();
+      //aktualizacja koszyja
+      thisCart.update();
     }
 
   }  
+
+  class CartProduct{
+    constructor(menuProduct, element){
+      const thisCartProduct = this;
+
+      thisCartProduct.id = menuProduct.id;
+      thisCartProduct.name = menuProduct.name;
+      thisCartProduct.amount = menuProduct.amount;
+      thisCartProduct.priceSingle = menuProduct.priceSingle;
+      thisCartProduct.price = menuProduct.price;
+      thisCartProduct.params = menuProduct.params;
+
+      //przyupisanie elementu dom
+      thisCartProduct.getElements(element);
+      //wywolanie metody dla widgetu ilosci
+      thisCartProduct.initAmountWidget();
+      thisCartProduct.initActions();
+
+      //console.log('new CartProduct', thisCartProduct);
+
+    }
+
+    getElements(element){
+      const thisCartProduct = this;
+
+      //stworzenie pustego obiektu dom
+      thisCartProduct.dom = {};
+
+      //przypisanie wrappera do obiektu dom
+      thisCartProduct.dom.wrapper = element;
+
+      //stworzenie referencji do obiektów we wrapperze
+
+      thisCartProduct.dom.amountWidget = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.amountWidget);
+      thisCartProduct.dom.price = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.price);
+      thisCartProduct.dom.edit = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.edit);
+      thisCartProduct.dom.remove = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.remove);
+    }
+
+    initAmountWidget(){
+      const thisCartProduct = this;
+      
+      thisCartProduct.amountWidget = new AmountWidget(thisCartProduct.dom.amountWidget);
+      
+      thisCartProduct.dom.amountWidget.addEventListener('updated', function(){
+       //aktualizacja wartosci amount
+       thisCartProduct.amount = thisCartProduct.amountWidget.value;
+       //obliczanie nowej ceny
+       thisCartProduct.price = thisCartProduct.amount * thisCartProduct.priceSingle;
+       //aktualizacja ceny html
+       thisCartProduct.dom.price.innerHTML = thisCartProduct.price;
+      });
+    }
+
+    remove(){
+      const thisCartProduct = this;
+
+      const event = new CustomEvent('remove', {
+        bubbles: true,
+        detail: {
+          cartProduct: thisCartProduct,
+        },
+      });
+
+      thisCartProduct.dom.wrapper.dispatchEvent(event);
+    }
+
+    initActions(){
+      const thisCartProduct = this;
+      
+      thisCartProduct.dom.edit.addEventListener('click', function(){
+        event.preventDefault();
+      });
+
+      thisCartProduct.dom.remove.addEventListener('click', function(){
+        event.preventDefault();
+        thisCartProduct.remove();
+      });
+    }
+
+  }
 
   const app = {
     initData: function(){
