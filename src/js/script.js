@@ -385,6 +385,7 @@
       thisCart.products = [];
       thisCart.getElements(element);
       thisCart.initActions;
+      
 
       //console.log('new cart', thisCart);
     }
@@ -408,6 +409,11 @@
 
       // Dodanie referencji do elementu pokazującego liczbę sztuk produktów
       thisCart.dom.totalNumber = thisCart.dom.wrapper.querySelector(select.cart.totalNumber);
+      //referencja do formularza
+      thisCart.dom.form = thisCart.dom.wrapper.querySelector(select.cart.form);
+
+      thisCart.dom.addres = thisCart.dom.wrapper.querySelector(select.cart.address);
+      thisCart.dom.phone = thisCart.dom.wrapper.querySelector(select.cart.phone);
     }
 
     initActions(){
@@ -423,6 +429,11 @@
 
       thisCart.dom.productList.addEventListener('remove', function(event){
         thisCart.remove(event.detail.cartProduct);
+      });
+
+      thisCart.dom.form.addEventListener('submit', function(event){
+        event.preventDefault();
+        thisCart.sendOrder();//metoda do wyslania zamowienia
       });
     }
 
@@ -461,6 +472,10 @@
       } else{
         thisCart.totalPrice = 0; //jesli nie ma produktow to cena na 0
       }
+
+       // Zapisanie totalNumber i subtotalPrice jako właściwości obiektu thisCart
+      thisCart.totalNumber = totalNumber;
+      thisCart.subtotalPrice = subtotalPrice;
       //aktualizacja wartosci w koszyku
       thisCart.dom.totalNumber.innerHTML = totalNumber;
       thisCart.dom.subtotalPrice.innerHTML = subtotalPrice;
@@ -488,6 +503,43 @@
       cartProduct.dom.wrapper.remove();
       //aktualizacja koszyja
       thisCart.update();
+    }
+
+    sendOrder(){
+      const thisCart = this;
+      const url = settings.db.url + '/' + settings.db.orders;
+
+      const payload = {
+        addres: thisCart.dom.addres.value,
+        phone: thisCart.dom.phone.value,
+        totalPrice: thisCart.totalPrice,
+        subtotalPrice: thisCart.subtotalPrice,
+        totalNumber: thisCart.totalNumber,
+        deliveryFee: thisCart.deliveryFee,
+        products: []
+      }
+      //dodaje produkty do payload.products
+      for(let prod of thisCart.products) {
+        payload.products.push(prod.getData());
+      }
+
+      const options = {
+        method: 'POST',
+        headers: {
+          'Content Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      };
+
+      fetch(url, options)
+        .then(function(response){
+          return response.json();
+        })
+        .then(function(parsedResponse){
+          console.log('parsedResponse', parsedResponse);
+        });
+
+        
     }
 
   }  
@@ -561,14 +613,27 @@
     initActions(){
       const thisCartProduct = this;
       
-      thisCartProduct.dom.edit.addEventListener('click', function(){
+      thisCartProduct.dom.edit.addEventListener('click', function(event){
         event.preventDefault();
       });
 
-      thisCartProduct.dom.remove.addEventListener('click', function(){
+      thisCartProduct.dom.remove.addEventListener('click', function(event){
         event.preventDefault();
         thisCartProduct.remove();
       });
+    }
+
+    getData(){
+      const thisCartProduct = this;
+
+      return {
+        id: thisCartProduct.id,
+        amount: thisCartProduct.amount,
+        price: thisCartProduct.price,
+        priceSingle: thisCartProduct.priceSingle,
+        name: thisCartProduct.name,
+        params: thisCartProduct.params,
+    };
     }
 
   }
