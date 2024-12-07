@@ -134,7 +134,7 @@
       //console.log('Accordion trigger:', thisProduct.accordionTrigger);
       thisProduct.dom.form = thisProduct.element.querySelector(select.menuProduct.form);
       //console.log('Form:', thisProduct.form);
-      thisProduct.dom.formInputs = thisProduct.form.querySelectorAll(select.all.formInputs);
+      thisProduct.dom.formInputs = thisProduct.dom.form.querySelectorAll(select.all.formInputs);
       //console.log('Form inputs:', thisProduct.formInputs);
       thisProduct.dom.cartButton = thisProduct.element.querySelector(select.menuProduct.cartButton);
       //console.log('Cart button:', thisProduct.cartButton);
